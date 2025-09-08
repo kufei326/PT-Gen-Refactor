@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/github/languages/top/rabbitwit/PT-Gen-Refactor" alt="GitHub top language">
-  <img src="https://img.shields.io/github/search/rabbitwit/PT-Gen-Refactor/goto" alt="Used">
+  <img src="https://img.shields.io/badge/Used-JavaScript%20React-blue.svg" alt="Used">
 </p>
 
 ## 关于PT-Gen-Refactor
