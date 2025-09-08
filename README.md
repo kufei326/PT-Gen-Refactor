@@ -231,7 +231,7 @@ Published pt-gen-refactor (0.3 seconds)
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=rabbitwit/new-pt-gen&type=Date)](https://star-history.com/#rabbitwit/new-pt-gen&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=rabbitwit/PT-Gen-Refactor&type=Date)](https://star-history.com/#rabbitwit/PT-Gen-Refactor&Date)
 
 ## 贡献
 
