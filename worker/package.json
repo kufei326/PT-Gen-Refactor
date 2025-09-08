@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx wrangler dev",
-    "deploy": "npx wrangler deploy"
+    "deploy": "npx wrangler deploy",
+    "build": "rollup -c"
   },
   "keywords": [
     "cloudflare",
@@ -14,7 +15,11 @@
   "author": "PT-Gen Team",
   "license": "MIT",
   "devDependencies": {
-    "wrangler": "^4.33.0"
+    "wrangler": "^4.33.0",
+    "rollup": "^2.79.1",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-commonjs": "^22.0.2",
+    "rollup-plugin-node-polyfills": "^0.2.1"
   },
   "dependencies": {
     "cheerio": "^1.1.2"
