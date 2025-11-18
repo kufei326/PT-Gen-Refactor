@@ -12,6 +12,13 @@ TMDB_API_KEY = ""
 #DOUBAN_COOKIE = ''
 #API_KEY = ""
 
-[[r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "pt-gen-cache"
+# R2 存储桶配置（可选，选择一种缓存方式即可） 如需使用 R2 存储桶缓存删除参数前的 # 符号
+#[[r2_buckets]]
+#binding = "R2_BUCKET"
+#bucket_name = "pt-gen-cache"
+
+# D1 数据库配置（可选，选择一种缓存方式即可） 如需使用 D1 数据库缓存删除参数前的 # 符号
+#[[d1_databases]]
+#binding = "DB"
+#database_name = "pt-gen-cache"
+#database_id = ""

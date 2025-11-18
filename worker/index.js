@@ -997,6 +997,7 @@ const _extractParams = async (request, uri) => {
  * @returns {Promise<object>} 返回缓存或新抓取的数据。
  */
 async function _withCache(resourceId, fetchFunction, env) {
+  // 尝试从 R2 读取缓存
   if (env.R2_BUCKET) {
     try {
       const cachedData = await env.R2_BUCKET.get(resourceId);
@@ -1009,18 +1010,51 @@ async function _withCache(resourceId, fetchFunction, env) {
     }
   }
 
-  // 缓存未命中或R2不可用/读取失败
+  // 尝试从 D1 读取缓存
+  if (env.DB) {
+    try {
+      const cachedData = await env.DB.prepare(
+        "SELECT data FROM cache WHERE key = ?"
+      ).bind(resourceId).first();
+      
+      if (cachedData) {
+        console.log(`[Cache Hit] Returning cached data for resource: ${resourceId}`);
+        return JSON.parse(cachedData.data);
+      }
+    } catch (e) {
+      console.error(`Error reading from D1 for ${resourceId}:`, e);
+    }
+  }
+
+  // 缓存未命中，获取新数据
   console.log(`[Cache Miss] Fetching data for resource: ${resourceId}`);
   const freshData = await fetchFunction();
 
+  // 尝试写入 R2 缓存
   if (freshData?.success && env.R2_BUCKET) {
     try {
       const lightweightResult = { ...freshData };
       delete lightweightResult.format;
       await env.R2_BUCKET.put(resourceId, JSON.stringify(lightweightResult));
-      console.log(`[Cache Write] Cached result for resource: ${resourceId}`);
+      console.log(`[Cache Write] Cached result for resource: ${resourceId} in R2`);
     } catch (e) {
       console.error(`Error writing to R2 for ${resourceId}:`, e);
+    }
+  }
+  
+  // 尝试写入 D1 缓存
+  if (freshData?.success && env.DB) {
+    try {
+      const lightweightResult = { ...freshData };
+      delete lightweightResult.format;
+      
+      await env.DB.prepare(
+        "INSERT OR REPLACE INTO cache (key, data, timestamp) VALUES (?, ?, ?)"
+      ).bind(resourceId, JSON.stringify(lightweightResult), Date.now()).run();
+      
+      console.log(`[Cache Write] Cached result for resource: ${resourceId} in D1`);
+    } catch (e) {
+      console.error(`Error writing to D1 for ${resourceId}:`, e);
     }
   }
   

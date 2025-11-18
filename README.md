@@ -44,7 +44,7 @@
 - 支持多种媒体类型（电影、电视剧、音乐、游戏等）
 - 智能搜索功能（根据关键词语言自动选择搜索平台）
 - 请求频率限制和恶意请求防护
-- R2缓存存储（避免重复抓取相同资源，提高响应速度）
+- 多种缓存存储（R2或D1数据库，避免重复抓取相同资源，提高响应速度）
 
 ## 环境要求
 
@@ -115,7 +115,11 @@ cd ..
    npx wrangler login
    ```
 
-### 2. 创建 R2 存储桶
+### 2. 创建存储资源
+
+本项目支持两种缓存存储方式：R2 对象存储和 D1 数据库。您可以选择其中一种或同时使用两种。
+
+#### 方式一：创建 R2 存储桶
 
 R2 是 Cloudflare 提供的对象存储服务，本项目使用 R2 来缓存已抓取的数据，避免重复请求相同的资源。
 
@@ -124,10 +128,44 @@ R2 是 Cloudflare 提供的对象存储服务，本项目使用 R2 来缓存已�
 3. 创建一个新的存储桶，命名为 `pt-gen-cache`
 4. 确保存储桶名称与 `wrangler.toml` 文件中配置的 `bucket_name` 一致
 
+#### 方式二：创建 D1 数据库
+
+D1 是 Cloudflare 提供的分布式数据库服务，您也可以使用 D1 作为缓存存储。
+
+1. 登录 Cloudflare 控制台
+2. 导航到 D1 页面
+3. 创建一个新的数据库，命名为 `pt-gen-cache`
+4. 获取数据库 ID 并在 `wrangler.toml` 文件中配置
+
+##### 初始化 D1 数据库表
+
+创建数据库后，您需要手动创建缓存表。有两种方式可以完成此操作：
+
+**方法一：使用 Wrangler 命令行工具**
+
+```bash
+npx wrangler d1 execute pt-gen-cache --command "CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, data TEXT NOT NULL, timestamp INTEGER NOT NULL);"
+```
+
+**方法二：通过 Cloudflare 控制台**
+
+1. 登录 Cloudflare 控制台
+2. 导航到 D1 页面
+3. 选择您创建的 `pt-gen-cache` 数据库
+4. 在 SQL 查询区域执行以下 SQL 语句：
+
+```sql
+CREATE TABLE IF NOT EXISTS cache (
+  key TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  timestamp INTEGER NOT NULL
+);
+```
+
 ### 3. 配置环境变量
 
 编辑根目录下的 `wrangler.toml` 文件，更新以下配置：
-```toml
+```
 name = "pt-gen-refactor"  # Worker 名称，可以修改为你自己的名称
 
 # 静态资源绑定 (如不需要前端界面，请使用# 注释)
@@ -144,9 +182,16 @@ DOUBAN_COOKIE = "your_douban_cookie"
 # 安全API密钥（可选）
 API_KEY = "your_api_key"
 
+# R2 存储桶配置（可选，选择一种缓存方式即可）
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "pt-gen-cache"
+
+# D1 数据库配置（可选，选择一种缓存方式即可）
+[[d1_databases]]
+binding = "D1_CACHE"
+database_name = "pt-gen-cache"
+database_id = "your_database_id"
 ```
 
 下表列出了所有可用的环境变量及其说明：
@@ -244,7 +289,7 @@ Published pt-gen-refactor (0.3 seconds)
 3. **TMDB 功能限制**：需要提供 TMDB API 密钥，否则将无法获取 TMDB 资源信息。
 4. **搜索功能限制**：如要使用中文搜索功能,必须要配置TMDB API KEY,如果没有配置的话,则只能使用英文进行搜索(调用IMDB)。
 5. **安全API 密钥**：如配置了安全API密钥,则调用时必须携带URL参数"key=YOUR_API_KEY",才能获取数据。
-6. **R2 缓存功能**：系统会自动将抓取的数据存储在 R2 中，下次请求相同资源时会直接从缓存中读取，提高响应速度并减少源站压力。
+6. **缓存功能**：系统支持 R2 或 D1 作为缓存存储，会自动将抓取的数据存储在配置的存储中，下次请求相同资源时会直接从缓存中读取，提高响应速度并减少源站压力。
 7. 启动应用后，访问前端地址 (默认 https://pt-gen-refactor.your-subdomain.workers.dev)
 8. 输入媒体资源的链接或 ID
 9. 系统将自动获取并生成标准 PT 描述（豆瓣资源包含演员/导演图片信息）
@@ -255,6 +300,7 @@ Published pt-gen-refactor (0.3 seconds)
 - **豆瓣信息增强**：豆瓣资源现在包含演员和导演的图片信息
 - **更丰富的元数据**：提供更完整的媒体信息用于PT站点发布
 - **性能优化**：改进了数据抓取和处理逻辑
+- **多种缓存选择**：支持 R2 对象存储和 D1 数据库两种缓存方式，用户可根据需求选择
 
 ## 感谢
 
