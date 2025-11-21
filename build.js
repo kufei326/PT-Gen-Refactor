@@ -68,7 +68,12 @@ function buildFrontend() {
     return;
   }
   
+  // 确保前端依赖已安装
+  console.log('安装前端依赖...');
+  execCommand('npm install', './frontend');
+  
   // 构建前端
+  console.log('构建前端应用...');
   execCommand('npm run build', './frontend');
   
   // 验证构建结果
@@ -86,9 +91,13 @@ function buildFrontend() {
   
   // 显示构建信息
   try {
-    const stats = fs.statSync('frontend/dist');
     const files = fs.readdirSync('frontend/dist');
     console.log(`   构建文件: ${files.length} 个文件`);
+    
+    // 显示主要文件大小
+    const indexPath = path.join('frontend/dist/index.html');
+    const indexSize = (fs.statSync(indexPath).size / 1024).toFixed(2);
+    console.log(`   index.html: ${indexSize} KB`);
   } catch (error) {
     // 忽略统计错误
   }

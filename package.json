@@ -13,8 +13,7 @@
     "build": "node build.js",
     "build:frontend": "cd frontend && npm run build",
     "build:all": "npm run install:all && npm run build:frontend",
-    "install:all": "npm install && cd worker && npm install && cd ../frontend && npm install && cd ..",
-    "postinstall": "npm run build:frontend"
+    "install:all": "npm install && cd worker && npm install && cd ../frontend && npm install && cd .."
   },
   "keywords": [
     "cloudflare",
