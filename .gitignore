@@ -11,7 +11,8 @@ yarn.lock
 dist/
 build/
 .out/
-frontend/dist/
+# 注释掉 frontend/dist/ 以支持 Deploy to Cloudflare Workers 按钮
+# frontend/dist/
 
 # Environment variables
 .env
