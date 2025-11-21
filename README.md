@@ -33,7 +33,7 @@
 
 ### 快速部署到 Cloudflare Workers
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/rabbitwit/PT-Gen-Refactor)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kufei326/PT-Gen-Refactor)
 
 > **注意**: 点击按钮后，系统会自动执行以下步骤：
 > 1. Fork 项目到您的 GitHub 账户
@@ -42,7 +42,7 @@
 > 4. 部署到 Cloudflare Workers
 > 5. 提供访问链接
 
-[![Deploy](https://github.com/rabbitwit/PT-Gen-Refactor/actions/workflows/deploy.yml/badge.svg)](https://github.com/rabbitwit/PT-Gen-Refactor/actions/workflows/deploy.yml)
+[![Deploy](https://github.com/kufei326/PT-Gen-Refactor/actions/workflows/deploy.yml/badge.svg)](https://github.com/kufei326/PT-Gen-Refactor/actions/workflows/deploy.yml)
 
 ### 本地一键部署
 
@@ -104,7 +104,7 @@ npm run deploy
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/rabbitwit/PT-Gen-Refactor.git
+git clone https://github.com/kufei326/PT-Gen-Refactor.git
 cd new-pt-gen
 ```
 
