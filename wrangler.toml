@@ -2,6 +2,10 @@ name = "pt-gen-refactor"
 main = "worker/index.js"
 compatibility_date = "2025-08-27"
 
+# 构建配置 - Deploy to Cloudflare Workers 按钮使用
+[build]
+command = "npm run build"
+
 [assets]
 directory = "./frontend/dist"
 binding = "ASSETS"

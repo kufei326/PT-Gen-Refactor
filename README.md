@@ -29,6 +29,54 @@
   <img src="https://img.shields.io/badge/Demo-Click%20Here-blue?style=for-the-badge" alt="Demo">
 </a>
 
+## 🚀 一键部署
+
+### 快速部署到 Cloudflare Workers
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/rabbitwit/PT-Gen-Refactor)
+
+> **注意**: 点击按钮后，系统会自动执行以下步骤：
+> 1. Fork 项目到您的 GitHub 账户
+> 2. 自动安装所有依赖
+> 3. 构建前端应用 
+> 4. 部署到 Cloudflare Workers
+> 5. 提供访问链接
+
+[![Deploy](https://github.com/rabbitwit/PT-Gen-Refactor/actions/workflows/deploy.yml/badge.svg)](https://github.com/rabbitwit/PT-Gen-Refactor/actions/workflows/deploy.yml)
+
+### 本地一键部署
+
+**方式一：交互式部署（推荐）**
+
+```bash
+# Linux/macOS
+chmod +x deploy.sh && ./deploy.sh
+
+# Windows PowerShell
+.\deploy.ps1
+
+# Node.js（跨平台）
+npm run deploy:auto
+```
+
+**方式二：快速部署**
+
+```bash
+# 确保已登录 Wrangler
+npx wrangler login
+
+# 一键部署
+chmod +x quick-deploy.sh && ./quick-deploy.sh
+```
+
+**方式三：传统方式**
+
+```bash
+npm run install:all
+npm run build:frontend
+npm run deploy
+```
+
 ## 功能特性
 
 - 支持从多个平台获取媒体信息：
@@ -98,6 +146,9 @@ cd ..
 - `npm run dev` - 启动 Worker 开发服务器
 - `npm run dev:frontend` - 启动前端开发服务器
 - `npm run deploy` - 部署 Worker 到 Cloudflare
+- `npm run deploy:auto` - 一键自动部署（交互式配置）
+- `npm run deploy:quick` - 快速部署（构建+部署）
+- `npm run build:frontend` - 构建前端应用
 - `npm run install:all` - 一次性安装所有依赖
 
 ## 部署

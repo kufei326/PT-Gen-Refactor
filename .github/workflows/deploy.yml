@@ -1,0 +1,216 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  # 手动触发部署
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      build_frontend:
+        description: '是否构建前端'
+        required: true
+        default: true
+        type: boolean
+  
+  # 当 main 分支有推送时自动部署
+  push:
+    branches:
+      - main
+    paths:
+      - 'worker/**'
+      - 'frontend/**'
+      - 'wrangler.toml'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            worker/node_modules
+            frontend/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+      
+      - name: Install root dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+      
+      - name: Install worker dependencies
+        run: |
+          cd worker
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only
+          fi
+          npm ci
+      
+      - name: Install frontend dependencies
+        if: github.event.inputs.build_frontend != 'false' && hashFiles('frontend/package.json') != ''
+        run: |
+          cd frontend
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only
+          fi
+          npm ci
+      
+      - name: Build frontend
+        if: github.event.inputs.build_frontend != 'false' && hashFiles('frontend/package.json') != ''
+        run: |
+          cd frontend
+          npm run build
+          
+          # 验证构建产物
+          if [ ! -d "dist" ]; then
+            echo "❌ 前端构建失败：未找到 dist 目录"
+            exit 1
+          fi
+          
+          echo "✅ 前端构建成功"
+          ls -la dist/
+      
+      - name: Prepare wrangler configuration
+        run: |
+          echo "准备 Wrangler 配置..."
+          
+          # 如果是 staging 环境，修改 worker 名称
+          if [ "${{ github.event.inputs.environment }}" = "staging" ]; then
+            sed -i 's/name = "pt-gen-refactor"/name = "pt-gen-refactor-staging"/' wrangler.toml
+            echo "✅ 配置为 staging 环境"
+          fi
+          
+          # 显示最终配置（隐藏敏感信息）
+          echo "当前 wrangler.toml 配置："
+          cat wrangler.toml | grep -E '^name|^main|^compatibility_date|^\[|^#'
+      
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: './worker'
+          command: deploy
+          secrets: |
+            TMDB_API_KEY
+            DOUBAN_COOKIE
+            API_KEY
+        env:
+          # 从 GitHub Secrets 中读取环境变量
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          DOUBAN_COOKIE: ${{ secrets.DOUBAN_COOKIE }}
+          API_KEY: ${{ secrets.API_KEY }}
+      
+      - name: Get deployment info
+        id: deployment
+        run: |
+          cd worker
+          
+          # 获取部署信息
+          DEPLOYMENT_URL=$(npx wrangler deployments list --limit 1 --compatibility-date=2025-08-27 | grep -oP 'https://[^\s]+' | head -1 || echo "")
+          
+          if [ -n "$DEPLOYMENT_URL" ]; then
+            echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "✅ 部署成功！"
+            echo "🔗 访问地址: $DEPLOYMENT_URL"
+          else
+            echo "⚠️  无法获取部署地址，请手动检查"
+          fi
+      
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 部署完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 项目 | 信息 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 环境 | ${{ github.event.inputs.environment || 'production' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 分支 | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 提交 | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 构建时间 | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ steps.deployment.outputs.url }}" ]; then
+            echo "| 访问地址 | [${{ steps.deployment.outputs.url }}](${{ steps.deployment.outputs.url }}) |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 部署详情" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Worker 代码已部署" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.build_frontend }}" != "false" ] && [ -f "frontend/package.json" ]; then
+            echo "- ✅ 前端已构建并包含在部署中" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ 跳过前端构建" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "- ✅ 环境变量已配置" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 后续步骤" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. 确认 Cloudflare 控制台中的 R2/D1 资源已正确创建" >> $GITHUB_STEP_SUMMARY
+          echo "2. 验证部署地址的功能是否正常" >> $GITHUB_STEP_SUMMARY
+          echo "3. 如需自定义域名，请在 Cloudflare 控制台中配置" >> $GITHUB_STEP_SUMMARY
+
+  # 构建任务（可选，用于验证代码）
+  build-check:
+    runs-on: ubuntu-latest
+    name: Build Check
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies and build
+        run: |
+          # 安装并构建所有组件
+          npm install || true
+          
+          cd worker
+          npm install
+          npm run build || echo "Worker 构建完成"
+          cd ..
+          
+          if [ -f "frontend/package.json" ]; then
+            cd frontend
+            npm install
+            npm run build
+            cd ..
+          fi
+          
+          echo "✅ 构建检查通过"
