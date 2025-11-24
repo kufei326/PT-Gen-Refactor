@@ -310,3 +310,77 @@ export const gen_douban = async (sid, env) => {
     return Object.assign(data, { error: error?.message || String(error) });
   }
 };
+
+/**
+ * 搜索豆瓣电影/电视剧
+ * @param {string} query - 搜索关键词
+ * @param {Object} env - 环境变量（可包含DOUBAN_COOKIE）
+ * @returns {Promise<Object>} 搜索结果对象
+ */
+export const search_douban = async (query, env) => {
+  try {
+    const q = String(query || '').trim();
+    if (!q) {
+      return { success: false, error: 'Invalid query', data: [] };
+    }
+
+    // 构建请求选项，支持Cookie
+    const fetchOptions = {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Referer': 'https://movie.douban.com/',
+      }
+    };
+
+    // 如果环境变量中有豆瓣Cookie，则添加到请求头
+    if (env?.DOUBAN_COOKIE) {
+      fetchOptions.headers['Cookie'] = env.DOUBAN_COOKIE;
+    }
+
+    const searchUrl = `https://movie.douban.com/j/subject_suggest?q=${encodeURIComponent(q)}`;
+    console.log('Douban search URL:', searchUrl);
+
+    const response = await fetchWithTimeout(searchUrl, fetchOptions, DEFAULT_TIMEOUT);
+    
+    if (!response.ok) {
+      throw new Error(`Douban API returned status ${response.status}`);
+    }
+
+    const searchResults = await response.json();
+    console.log('Douban search results:', searchResults);
+
+    if (!Array.isArray(searchResults)) {
+      return { success: false, error: '豆瓣搜索返回格式异常 | Invalid response format from Douban', data: [] };
+    }
+
+    if (searchResults.length === 0) {
+      return { success: false, error: '未找到相关结果 | No results found', data: [] };
+    }
+
+    // 标准化搜索结果
+    const formattedResults = searchResults.slice(0, 10).map(item => ({
+      year: item.year || '',
+      subtype: item.type || 'movie',
+      title: item.title || '',
+      subtitle: item.sub_title || '',
+      link: `https://movie.douban.com/subject/${item.id}/`,
+      id: item.id,
+      img: item.img || ''
+    }));
+
+    return {
+      success: true,
+      data: formattedResults
+    };
+
+  } catch (error) {
+    console.error('Douban search error:', error);
+    return {
+      success: false,
+      error: error.message || '豆瓣搜索失败 | Douban search failed',
+      data: []
+    };
+  }
+};

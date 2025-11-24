@@ -10,6 +10,15 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showCopyNotification, setShowCopyNotification] = useState(false);
+  const [searchSource, setSearchSource] = useState('auto'); // 新增：搜索源选择
+
+  // 搜索源选项配置
+  const searchSourceOptions = [
+    { value: 'auto', label: '🤖 智能选择', description: '中文使用TMDB，英文使用IMDb' },
+    { value: 'douban', label: '🎬 豆瓣', description: '豆瓣电影/电视剧 (推荐中文搜索)' },
+    { value: 'tmdb', label: '🎭 TMDB', description: 'The Movie Database (需要API密钥)' },
+    { value: 'imdb', label: '🎪 IMDb', description: 'Internet Movie Database (推荐英文搜索)' }
+  ];
 
   // 检测文本是否主要为中文
   const isChineseText = (text) => {
@@ -79,12 +88,17 @@ function App() {
         // 直接URL处理
         apiUrl = `/api?url=${encodeURIComponent(url)}`;
       } else {
-        // 搜索关键词处理，根据语言自动选择搜索源
-        if (isChineseText(url)) {
-          apiUrl = `/api?source=tmdb&query=${encodeURIComponent(url)}`;
+        // 搜索关键词处理，根据用户选择的搜索源
+        if (searchSource === 'auto') {
+          // 智能选择：根据语言自动选择搜索源
+          if (isChineseText(url)) {
+            apiUrl = `/api?source=douban&query=${encodeURIComponent(url)}`; // 改为豆瓣优先
+          } else {
+            apiUrl = `/api?source=imdb&query=${encodeURIComponent(url)}`;
+          }
         } else {
-          // 英文关键词使用IMDb搜索
-          apiUrl = `/api?source=imdb&query=${encodeURIComponent(url)}`;
+          // 使用用户指定的搜索源
+          apiUrl = `/api?source=${searchSource}&query=${encodeURIComponent(url)}`;
         }
       }
       
@@ -220,6 +234,7 @@ function App() {
     setSearchResults(null);
     setLastSearchSource(null);
     setError(null);
+    setSearchSource('auto'); // 重置搜索源为智能选择
   };
 
   // 渲染搜索结果项
@@ -333,7 +348,7 @@ function App() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                资源链接
+                资源链接或关键词
               </label>
               <input
                 type="text"
@@ -344,6 +359,43 @@ function App() {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
               />
             </div>
+            
+            {/* 搜索源选择器 - 仅在输入关键词时显示 */}
+            {url && !url.startsWith('http') && (
+              <div>
+                <label htmlFor="searchSource" className="block text-sm font-medium text-gray-700 mb-2">
+                  搜索引擎
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                  {searchSourceOptions.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`relative flex cursor-pointer rounded-lg border p-3 focus:outline-none ${
+                        searchSource === option.value
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                          : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="searchSource"
+                        value={option.value}
+                        checked={searchSource === option.value}
+                        onChange={(e) => setSearchSource(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{option.label}</span>
+                        <span className="text-xs text-gray-500 mt-1">{option.description}</span>
+                      </div>
+                      {searchSource === option.value && (
+                        <div className="absolute -inset-px rounded-lg border-2 border-indigo-500 pointer-events-none" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center">
               <button
                 type="submit"
@@ -436,27 +488,34 @@ function App() {
           <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
             <li>支持多种资源站点：
               <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>豆瓣：电影、电视剧</li>
-                <li>IMDb：电影、电视剧</li>
-                <li>TMDb：电影、电视剧</li>
-                <li>Bangumi：动画</li>
-                <li>Steam：游戏链接</li>
-                <li>Melon：音乐专辑链接</li>
+                <li>🎬 豆瓣：电影、电视剧 (中文搜索推荐)</li>
+                <li>🎪 IMDb：电影、电视剧 (英文搜索推荐)</li>
+                <li>🎭 TMDB：电影、电视剧 (需要API密钥)</li>
+                <li>📺 Bangumi：动画</li>
+                <li>🎮 Steam：游戏链接</li>
+                <li>🎵 Melon：音乐专辑链接</li>
               </ul>
             </li>
-            <li>输入名称时会自动根据语言选择搜索源（中文名使用TMDb，英文名使用IMDb）</li>
-            <li>点击"查询"按钮获取格式化结果</li>
-            <li>在搜索结果中选择匹配的条目</li>
+            <li><strong>搜索源选择</strong>：输入关键词时可选择搜索引擎：
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>🤖 <strong>智能选择</strong>：中文优先使用豆瓣，英文使用IMDb</li>
+                <li>🎬 <strong>豆瓣</strong>：最适合中文电影/电视剧搜索</li>
+                <li>🎭 <strong>TMDB</strong>：国际化搜索，支持多语言</li>
+                <li>🎪 <strong>IMDb</strong>：最适合英文电影/电视剧搜索</li>
+              </ul>
+            </li>
+            <li>直接输入URL链接会自动识别并处理（无需选择搜索源）</li>
+            <li>在搜索结果中点击选择匹配的条目</li>
             <li>复制生成的格式化内容到PT站点发布资源</li>
           </ul>
           
           <h4 className="text-sm font-medium text-gray-900 mt-3 mb-2">功能特点</h4>
           <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-            <li>支持多站点资源获取</li>
-            <li>自动生成标准PT格式描述</li>
-            <li>智能识别资源类型</li>
-            <li>支持中英文搜索</li>
-            <li>响应式设计，支持移动端使用</li>
+            <li>🔍 <strong>多引擎搜索</strong>：支持豆瓣、IMDb、TMDB三大搜索引擎</li>
+            <li>🤖 <strong>智能推荐</strong>：根据输入语言自动推荐最佳搜索源</li>
+            <li>📋 <strong>标准格式</strong>：自动生成PT站点标准描述格式</li>
+            <li>🌐 <strong>多语言支持</strong>：完美支持中英文搜索</li>
+            <li>📱 <strong>响应式设计</strong>：支持手机、平板、电脑等设备</li>
           </ul>
         </div>
       </main>

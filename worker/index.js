@@ -8,7 +8,7 @@ import {
   generateBangumiFormat, 
   generateSteamFormat 
 } from "./lib/common.js";
-import { gen_douban } from "./lib/douban.js";
+import { gen_douban, search_douban } from "./lib/douban.js";
 import { gen_imdb } from "./lib/imdb.js";
 import { gen_bangumi } from "./lib/bangumi.js";
 import { gen_tmdb } from "./lib/tmdb.js";
@@ -119,14 +119,20 @@ const ROOT_PAGE_CONFIG = {
     "Endpoints": {
       "/": "API documentation (this page)",
       "/?source=[douban|imdb|tmdb|bgm|melon]&query=[name]": "Search for media by name",
+      "/?query=[name]": "Auto search (Chinese->TMDB, English->IMDb)",
       "/?url=[media_url]": "Generate media description by URL"
+    },
+    "Search Sources": {
+      "douban": "豆瓣电影/电视剧搜索 (支持中文) | Douban movie/TV search",
+      "imdb": "IMDb电影/电视剧搜索 | IMDb movie/TV search", 
+      "tmdb": "TMDB电影/电视剧搜索 (需要API密钥) | TMDB search (API key required)"
     },
     "Notes": "Please use the appropriate source and query parameters for search, or provide a direct URL for generation."
   }
 };
 
 const PROVIDER_CONFIG = {
-  douban: { generator: gen_douban, formatter: generateDoubanFormat },
+  douban: { generator: gen_douban, formatter: generateDoubanFormat, searcher: search_douban },
   imdb:   { generator: gen_imdb,   formatter: generateImdbFormat   },
   tmdb:   { generator: gen_tmdb,   formatter: generateTmdbFormat   },
   bgm:    { generator: gen_bangumi,formatter: generateBangumiFormat},
@@ -691,9 +697,33 @@ const handleTmdbSearch = async (query, env) => {
 };
 
 /**
+ * 处理豆瓣搜索请求的箭头函数
+ * @param {string} query - 搜索关键词
+ * @param {Object} env - 环境变量对象，包含DOUBAN_COOKIE等配置
+ * @returns {Promise<Object>} 格式化的JSON响应对象
+ */
+const handleDoubanSearch = async (query, env) => {
+  const result = await search_douban(query, env);
+
+  if (!result.success || !result.data || result.data.length === 0) {
+    return makeJsonResponse({
+      success: false,
+      error: result.error || result.message || "豆瓣搜索未找到相关结果",
+      data: []
+    }, env);
+  }
+
+  return makeJsonResponse({
+    success: true,
+    data: result.data,
+    site: "search-douban"
+  }, env);
+};
+
+/**
  * 处理搜索请求的箭头函数
  * 根据指定的数据源执行相应的搜索操作
- * @param {string} source - 搜索数据源 (imdb/tmdb)
+ * @param {string} source - 搜索数据源 (douban/imdb/tmdb)
  * @param {string} query - 搜索关键词
  * @param {Object} env - 环境变量对象
  * @returns {Promise<Object>} 格式化的JSON响应对象
@@ -713,6 +743,9 @@ const handleSearchRequest = async (source, query, env) => {
     const normalizedSource = source.toLowerCase();
 
     switch (normalizedSource) {
+      case "douban":
+        return await handleDoubanSearch(query, env);
+
       case "imdb":
         return await handleImdbSearch(query, env);
 
@@ -722,7 +755,7 @@ const handleSearchRequest = async (source, query, env) => {
       default:
         return makeJsonResponse({
           success: false,
-          error: "Invalid source. Supported sources: imdb, tmdb"
+          error: "Invalid source. Supported sources: douban, imdb, tmdb"
         }, env);
     }
   } catch (search_error) {
