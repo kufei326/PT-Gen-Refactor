@@ -1,4 +1,4 @@
-name = "pt-gen-refactor"
+name = "gen"
 main = "worker/index.js"
 compatibility_date = "2025-08-27"
 
