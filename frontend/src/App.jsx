@@ -14,7 +14,7 @@ function App() {
 
   // 搜索源选项配置
   const searchSourceOptions = [
-    { value: 'auto', label: '🤖 智能选择', description: '中文优先豆瓣，英文优先IMDb，支持智能回退' },
+    { value: 'auto', label: '🤖 智能选择', description: '中文优先TMDB，英文优先IMDb，支持智能回退' },
     { value: 'douban', label: '🎬 豆瓣', description: '豆瓣电影/电视剧 (推荐中文搜索)' },
     { value: 'tmdb', label: '🎭 TMDB', description: 'The Movie Database (需要API密钥)' },
     { value: 'imdb', label: '🎪 IMDb', description: 'Internet Movie Database (推荐英文搜索)' }
@@ -494,7 +494,7 @@ function App() {
             </li>
             <li><strong>搜索源选择</strong>：输入关键词时可选择搜索引擎：
               <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>🤖 <strong>智能选择</strong>：中文使用豆瓣（回退IMDb），英文使用IMDb（回退豆瓣）</li>
+                <li>🤖 <strong>智能选择</strong>：中文使用TMDB（回退豆瓣），英文使用IMDb（回退豆瓣）</li>
                 <li>🎬 <strong>豆瓣</strong>：最适合中文电影/电视剧搜索</li>
                 <li>🎭 <strong>TMDB</strong>：国际化搜索，支持多语言</li>
                 <li>🎪 <strong>IMDb</strong>：最适合英文电影/电视剧搜索</li>
