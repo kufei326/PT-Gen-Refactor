@@ -883,7 +883,7 @@ const createErrorResponse = (message, status, corsHeaders) => {
   return new Response(JSON.stringify({ error: message }), {
     status,
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
       ...corsHeaders,
     },
   });

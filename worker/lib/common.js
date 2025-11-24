@@ -352,7 +352,7 @@ export const jsonp_parser = (responseText) => {
  */
 export const makeJsonRawResponse = (body, initOverride) => {
   const defaultHeaders = {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*"
   };
 
