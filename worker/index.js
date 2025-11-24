@@ -833,15 +833,15 @@ const handleAutoSearch = async (query, env) => {
   try {
     const isChinese = isChineseText(query);
     const primaryProvider = {
-      searchFunction: isChinese ? () => search_douban(query, env) : () => search_imdb(query),
-      site: isChinese ? "search-douban" : "search-imdb",
-      name: isChinese ? "豆瓣" : "IMDb",
+      searchFunction: isChinese ? () => search_tmdb(query, env) : () => search_imdb(query),
+      site: isChinese ? "search-tmdb" : "search-imdb",
+      name: isChinese ? "TMDB" : "IMDb",
     };
 
     const fallbackProvider = {
-      searchFunction: isChinese ? () => search_imdb(query) : () => search_douban(query, env),
-      site: isChinese ? "search-imdb" : "search-douban", 
-      name: isChinese ? "IMDb" : "豆瓣",
+      searchFunction: () => search_douban(query, env),
+      site: "search-douban", 
+      name: "豆瓣",
     };
 
     console.log(`Using ${primaryProvider.name} for query: ${query}`);
