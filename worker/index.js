@@ -119,7 +119,7 @@ const ROOT_PAGE_CONFIG = {
     "Endpoints": {
       "/": "API documentation (this page)",
       "GET /?source=[douban|imdb|tmdb|bgm|melon]&query=[name]": "Search for media by name",
-      "GET /?query=[name]": "Auto search (Chinese->TMDB, English->IMDb)",
+      "GET /?query=[name]": "Auto search (Chinese->Douban, English->IMDb)",
       "GET /?url=[media_url]": "Generate media description by URL",
       "POST /api": "Same functionality as GET, but with JSON body parameters"
     },
@@ -833,15 +833,15 @@ const handleAutoSearch = async (query, env) => {
   try {
     const isChinese = isChineseText(query);
     const primaryProvider = {
-      searchFunction: isChinese ? () => search_tmdb(query, env) : () => search_imdb(query),
-      site: isChinese ? "search-tmdb" : "search-imdb",
-      name: isChinese ? "TMDB" : "IMDb",
+      searchFunction: isChinese ? () => search_douban(query, env) : () => search_imdb(query),
+      site: isChinese ? "search-douban" : "search-imdb",
+      name: isChinese ? "豆瓣" : "IMDb",
     };
 
     const fallbackProvider = {
-      searchFunction: isChinese ? () => search_imdb(query) : () => search_tmdb(query, env),
-      site: isChinese ? "search-imdb" : "search-tmdb", 
-      name: isChinese ? "IMDb" : "TMDB",
+      searchFunction: isChinese ? () => search_imdb(query) : () => search_douban(query, env),
+      site: isChinese ? "search-imdb" : "search-douban", 
+      name: isChinese ? "IMDb" : "豆瓣",
     };
 
     console.log(`Using ${primaryProvider.name} for query: ${query}`);
