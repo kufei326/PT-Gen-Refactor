@@ -564,8 +564,8 @@ const search_tmdb = async (query, env) => {
       signal
     });
 
-    const movieSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(q)}`;
-    const tvSearchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&query=${encodeURIComponent(q)}`;
+    const movieSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&language=zh-CN&query=${encodeURIComponent(q)}`;
+    const tvSearchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&language=zh-CN&query=${encodeURIComponent(q)}`;
     const TIMEOUT = 8000;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timeoutId = controller ? setTimeout(() => controller.abort(), TIMEOUT) : null;
