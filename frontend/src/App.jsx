@@ -14,7 +14,7 @@ function App() {
 
   // 搜索源选项配置
   const searchSourceOptions = [
-    { value: 'auto', label: '🤖 智能选择', description: '中文使用TMDB，英文使用IMDb' },
+    { value: 'auto', label: '🤖 智能选择', description: '中文优先TMDB，英文优先IMDb，支持智能回退' },
     { value: 'douban', label: '🎬 豆瓣', description: '豆瓣电影/电视剧 (推荐中文搜索)' },
     { value: 'tmdb', label: '🎭 TMDB', description: 'The Movie Database (需要API密钥)' },
     { value: 'imdb', label: '🎪 IMDb', description: 'Internet Movie Database (推荐英文搜索)' }
@@ -90,12 +90,8 @@ function App() {
       } else {
         // 搜索关键词处理，根据用户选择的搜索源
         if (searchSource === 'auto') {
-          // 智能选择：根据语言自动选择搜索源
-          if (isChineseText(url)) {
-            apiUrl = `/api?source=douban&query=${encodeURIComponent(url)}`; // 改为豆瓣优先
-          } else {
-            apiUrl = `/api?source=imdb&query=${encodeURIComponent(url)}`;
-          }
+          // 智能选择：使用后端的自动搜索逻辑（中文→TMDB→IMDb，英文→IMDb→TMDB）
+          apiUrl = `/api?query=${encodeURIComponent(url)}`;
         } else {
           // 使用用户指定的搜索源
           apiUrl = `/api?source=${searchSource}&query=${encodeURIComponent(url)}`;
@@ -498,7 +494,7 @@ function App() {
             </li>
             <li><strong>搜索源选择</strong>：输入关键词时可选择搜索引擎：
               <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>🤖 <strong>智能选择</strong>：中文优先使用豆瓣，英文使用IMDb</li>
+                <li>🤖 <strong>智能选择</strong>：中文使用TMDB（回退IMDb），英文使用IMDb（回退TMDB）</li>
                 <li>🎬 <strong>豆瓣</strong>：最适合中文电影/电视剧搜索</li>
                 <li>🎭 <strong>TMDB</strong>：国际化搜索，支持多语言</li>
                 <li>🎪 <strong>IMDb</strong>：最适合英文电影/电视剧搜索</li>
