@@ -44,38 +44,7 @@
 
 [![Deploy](https://github.com/kufei326/PT-Gen-Refactor/actions/workflows/deploy.yml/badge.svg)](https://github.com/kufei326/PT-Gen-Refactor/actions/workflows/deploy.yml)
 
-### 本地一键部署
 
-**方式一：交互式部署（推荐）**
-
-```bash
-# Linux/macOS
-chmod +x deploy.sh && ./deploy.sh
-
-# Windows PowerShell
-.\deploy.ps1
-
-# Node.js（跨平台）
-npm run deploy:auto
-```
-
-**方式二：快速部署**
-
-```bash
-# 确保已登录 Wrangler
-npx wrangler login
-
-# 一键部署
-chmod +x quick-deploy.sh && ./quick-deploy.sh
-```
-
-**方式三：传统方式**
-
-```bash
-npm run install:all
-npm run build:frontend
-npm run deploy
-```
 
 ## 功能特性
 
