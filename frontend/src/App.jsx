@@ -17,7 +17,8 @@ function App() {
     { value: 'auto', label: '🤖 智能选择', description: '中文优先TMDB，英文优先IMDb，支持智能回退' },
     { value: 'douban', label: '🎬 豆瓣', description: '豆瓣电影/电视剧 (推荐中文搜索)' },
     { value: 'tmdb', label: '🎭 TMDB', description: 'The Movie Database (需要API密钥)' },
-    { value: 'imdb', label: '🎪 IMDb', description: 'Internet Movie Database (推荐英文搜索)' }
+    { value: 'imdb', label: '🎪 IMDb', description: 'Internet Movie Database (推荐英文搜索)' },
+    { value: 'bgm', label: '📺 Bangumi', description: 'Bangumi动画/三次元/音乐' }
   ];
 
   // 检测文本是否主要为中文
@@ -300,7 +301,8 @@ function App() {
     const sourceMap = {
       'search-douban': '豆瓣',
       'search-tmdb': 'TMDB',
-      'search-imdb': 'IMDb'
+      'search-imdb': 'IMDb',
+      'search-bgm': 'Bangumi'
     };
     
     return sourceMap[lastSearchSource] || '未知来源';
