@@ -118,9 +118,15 @@ const ROOT_PAGE_CONFIG = {
     "API Status": "PT-Gen API Service is running",
     "Endpoints": {
       "/": "API documentation (this page)",
-      "/?source=[douban|imdb|tmdb|bgm|melon]&query=[name]": "Search for media by name",
-      "/?query=[name]": "Auto search (Chinese->TMDB, English->IMDb)",
-      "/?url=[media_url]": "Generate media description by URL"
+      "GET /?source=[douban|imdb|tmdb|bgm|melon]&query=[name]": "Search for media by name",
+      "GET /?query=[name]": "Auto search (Chinese->TMDB, English->IMDb)",
+      "GET /?url=[media_url]": "Generate media description by URL",
+      "POST /api": "Same functionality as GET, but with JSON body parameters"
+    },
+    "HTTP Methods": {
+      "GET": "支持URL参数查询 | URL parameters supported",
+      "POST": "支持JSON body参数 | JSON body parameters supported",
+      "OPTIONS": "CORS预检请求 | CORS preflight requests"
     },
     "Search Sources": {
       "douban": "豆瓣电影/电视剧搜索 (支持中文) | Douban movie/TV search",
@@ -1208,7 +1214,18 @@ const handleRequest = async (request, env) => {
   }
 
   if ((pathname === "/" || pathname === "/api") && method === "GET") {
-    return handleRootRequest(env, true); 
+    // 检查是否有查询参数，如果有则执行查询，否则返回文档页面
+    const hasQueryParams = uri.searchParams.has('query') || 
+                          uri.searchParams.has('url') || 
+                          uri.searchParams.has('source') || 
+                          uri.searchParams.has('sid') ||
+                          uri.searchParams.has('tmdb_id');
+    
+    if (hasQueryParams) {
+      return await handleQueryRequest(request, env, uri);
+    } else {
+      return handleRootRequest(env, true); 
+    }
   }
 
   return _createNotFoundResponse(env);
