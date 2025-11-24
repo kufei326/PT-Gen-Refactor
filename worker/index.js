@@ -705,27 +705,67 @@ const handleTmdbSearch = async (query, env) => {
 };
 
 /**
- * 处理豆瓣搜索请求的箭头函数
+ * 处理豆瓣搜索请求的箭头函数，支持智能回退到TMDB
  * @param {string} query - 搜索关键词
  * @param {Object} env - 环境变量对象，包含DOUBAN_COOKIE等配置
  * @returns {Promise<Object>} 格式化的JSON响应对象
  */
 const handleDoubanSearch = async (query, env) => {
+  console.log(`Starting Douban search for: ${query}`);
   const result = await search_douban(query, env);
 
-  if (!result.success || !result.data || result.data.length === 0) {
+  // 如果豆瓣搜索成功且有数据，直接返回
+  if (result.success && result.data && result.data.length > 0) {
     return makeJsonResponse({
-      success: false,
-      error: result.error || result.message || "豆瓣搜索未找到相关结果",
-      data: []
+      success: true,
+      data: result.data,
+      site: "search-douban"
     }, env);
   }
 
-  return makeJsonResponse({
-    success: true,
-    data: result.data,
-    site: "search-douban"
-  }, env);
+  // 豆瓣没有数据时，智能回退到TMDB
+  console.log(`Douban search failed or no results, falling back to TMDB for: ${query}`);
+  
+  try {
+    const tmdbResult = await search_tmdb(query, env);
+    
+    if (tmdbResult.success && tmdbResult.data && tmdbResult.data.length > 0) {
+      console.log(`TMDB fallback successful for: ${query}`);
+      return makeJsonResponse({
+        success: true,
+        data: tmdbResult.data,
+        site: "search-tmdb",
+        fallback_info: {
+          original_source: "douban",
+          fallback_source: "tmdb",
+          reason: "豆瓣无搜索结果，已自动切换到TMDB | No Douban results, automatically switched to TMDB"
+        }
+      }, env);
+    }
+    
+    // TMDB也没有结果
+    console.log(`Both Douban and TMDB searches failed for: ${query}`);
+    return makeJsonResponse({
+      success: false,
+      error: "豆瓣和TMDB均未找到相关结果 | No results found in both Douban and TMDB",
+      data: [],
+      attempted_sources: ["douban", "tmdb"],
+      douban_error: result.error || result.message || "豆瓣搜索失败",
+      tmdb_error: tmdbResult.error || tmdbResult.message || "TMDB搜索失败"
+    }, env);
+    
+  } catch (tmdbError) {
+    console.error(`TMDB fallback error for query ${query}:`, tmdbError);
+    
+    // TMDB回退失败，返回原始豆瓣错误
+    return makeJsonResponse({
+      success: false,
+      error: result.error || result.message || "豆瓣搜索未找到相关结果",
+      data: [],
+      fallback_attempted: true,
+      fallback_error: tmdbError.message || "TMDB fallback failed"
+    }, env);
+  }
 };
 
 /**
@@ -772,8 +812,9 @@ const handleSearchRequest = async (source, query, env) => {
 };
 
 /**
- * 处理自动搜索请求的箭头函数
+ * 处理自动搜索请求的箭头函数，支持智能回退
  * 根据查询文本的语言自动选择搜索源（中文使用TMDB，非中文使用IMDb）
+ * 如果主要搜索源失败，会智能回退到备用搜索源
  * @param {string} query - 搜索关键词
  * @param {Object} env - 环境变量对象
  * @returns {Promise<Object>} 格式化的JSON响应对象
@@ -791,40 +832,75 @@ const handleAutoSearch = async (query, env) => {
 
   try {
     const isChinese = isChineseText(query);
-    const searchProvider = {
+    const primaryProvider = {
       searchFunction: isChinese ? () => search_tmdb(query, env) : () => search_imdb(query),
       site: isChinese ? "search-tmdb" : "search-imdb",
       name: isChinese ? "TMDB" : "IMDb",
     };
 
-    console.log(`Using ${searchProvider.name} for query: ${query}`);
-    
-    const searchResult = await searchProvider.searchFunction();
-    console.log(`${searchProvider.name} search completed for query: ${query}`);
+    const fallbackProvider = {
+      searchFunction: isChinese ? () => search_imdb(query) : () => search_tmdb(query, env),
+      site: isChinese ? "search-imdb" : "search-tmdb", 
+      name: isChinese ? "IMDb" : "TMDB",
+    };
 
-    if (!searchResult.success) {
-      const errorMessage = searchResult.error || searchResult.message || 
-                          `${searchProvider.name} search failed due to an unknown reason.`;
-      return makeJsonResponse({ 
-        success: false, 
-        error: errorMessage, 
-        data: [] 
+    console.log(`Using ${primaryProvider.name} for query: ${query}`);
+    
+    const searchResult = await primaryProvider.searchFunction();
+    console.log(`${primaryProvider.name} search completed for query: ${query}`);
+
+    // 如果主要搜索源成功且有数据，直接返回
+    if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+      return makeJsonResponse({
+        success: true,
+        data: searchResult.data,
+        site: primaryProvider.site
       }, env);
     }
 
-    if (searchResult.data.length === 0) {
+    // 主要搜索源失败或无结果，尝试回退搜索源
+    console.log(`${primaryProvider.name} search failed or no results, falling back to ${fallbackProvider.name} for: ${query}`);
+    
+    try {
+      const fallbackResult = await fallbackProvider.searchFunction();
+      
+      if (fallbackResult.success && fallbackResult.data && fallbackResult.data.length > 0) {
+        console.log(`${fallbackProvider.name} fallback successful for: ${query}`);
+        return makeJsonResponse({
+          success: true,
+          data: fallbackResult.data,
+          site: fallbackProvider.site,
+          fallback_info: {
+            original_source: primaryProvider.name.toLowerCase(),
+            fallback_source: fallbackProvider.name.toLowerCase(),
+            reason: `${primaryProvider.name}无搜索结果，已自动切换到${fallbackProvider.name} | No ${primaryProvider.name} results, automatically switched to ${fallbackProvider.name}`
+          }
+        }, env);
+      }
+      
+      // 两个搜索源都没有结果
+      console.log(`Both ${primaryProvider.name} and ${fallbackProvider.name} searches failed for: ${query}`);
       return makeJsonResponse({
         success: false,
-        error: `${searchProvider.name} 未找到相关结果 | No results found`,
-        data: []
+        error: `${primaryProvider.name}和${fallbackProvider.name}均未找到相关结果 | No results found in both ${primaryProvider.name} and ${fallbackProvider.name}`,
+        data: [],
+        attempted_sources: [primaryProvider.name.toLowerCase(), fallbackProvider.name.toLowerCase()],
+        primary_error: searchResult.error || searchResult.message || `${primaryProvider.name}搜索失败`,
+        fallback_error: fallbackResult.error || fallbackResult.message || `${fallbackProvider.name}搜索失败`
+      }, env);
+      
+    } catch (fallbackError) {
+      console.error(`${fallbackProvider.name} fallback error for query ${query}:`, fallbackError);
+      
+      // 回退搜索失败，返回原始错误
+      return makeJsonResponse({
+        success: false,
+        error: searchResult.error || searchResult.message || `${primaryProvider.name} 未找到相关结果 | No results found`,
+        data: [],
+        fallback_attempted: true,
+        fallback_error: fallbackError.message || `${fallbackProvider.name} fallback failed`
       }, env);
     }
-
-    return makeJsonResponse({
-      success: true,
-      data: searchResult.data,
-      site: searchProvider.site
-    }, env);
 
   } catch (err) {
     console.error("Error in auto search:", err.message || err);
