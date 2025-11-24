@@ -10,7 +10,7 @@ import {
 } from "./lib/common.js";
 import { gen_douban, search_douban } from "./lib/douban.js";
 import { gen_imdb } from "./lib/imdb.js";
-import { gen_bangumi } from "./lib/bangumi.js";
+import { gen_bangumi, search_bangumi } from "./lib/bangumi.js";
 import { gen_tmdb } from "./lib/tmdb.js";
 import { gen_melon } from "./lib/melon.js";
 import { gen_steam } from "./lib/steam.js";
@@ -131,7 +131,8 @@ const ROOT_PAGE_CONFIG = {
     "Search Sources": {
       "douban": "豆瓣电影/电视剧搜索 (支持中文) | Douban movie/TV search",
       "imdb": "IMDb电影/电视剧搜索 | IMDb movie/TV search", 
-      "tmdb": "TMDB电影/电视剧搜索 (需要API密钥) | TMDB search (API key required)"
+      "tmdb": "TMDB电影/电视剧搜索 (需要API密钥) | TMDB search (API key required)",
+      "bgm": "Bangumi动画/游戏搜索 | Bangumi anime/game search"
     },
     "Notes": "Please use the appropriate source and query parameters for search, or provide a direct URL for generation."
   }
@@ -705,6 +706,38 @@ const handleTmdbSearch = async (query, env) => {
 };
 
 /**
+ * 处理Bangumi搜索请求的箭头函数
+ * @param {string} query - 搜索关键词
+ * @param {Object} env - 环境变量对象
+ * @returns {Promise<Object>} 格式化的JSON响应对象
+ */
+const handleBangumiSearch = async (query, env) => {
+  const result = await search_bangumi(query);
+
+  if (result.error || !result.data) {
+    return makeJsonResponse({
+      success: false,
+      error: result.error || "Bangumi search failed",
+      data: []
+    }, env);
+  }
+
+  if (result.data.length === 0) {
+    return makeJsonResponse({
+      success: false,
+      error: "Bangumi搜索未找到相关结果",
+      data: []
+    }, env);
+  }
+
+  return makeJsonResponse({
+    success: true,
+    data: result.data,
+    site: "search-bgm"
+  }, env);
+};
+
+/**
  * 处理豆瓣搜索请求的箭头函数，支持智能回退到TMDB
  * @param {string} query - 搜索关键词
  * @param {Object} env - 环境变量对象，包含DOUBAN_COOKIE等配置
@@ -799,11 +832,14 @@ const handleSearchRequest = async (source, query, env) => {
 
       case "tmdb":
         return await handleTmdbSearch(query, env);
+      
+      case "bgm":
+        return await handleBangumiSearch(query, env);
 
       default:
         return makeJsonResponse({
           success: false,
-          error: "Invalid source. Supported sources: douban, imdb, tmdb"
+          error: "Invalid source. Supported sources: douban, imdb, tmdb, bgm"
         }, env);
     }
   } catch (search_error) {

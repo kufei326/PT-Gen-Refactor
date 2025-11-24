@@ -26,6 +26,37 @@ const TYPE_MAP = new Map([
   [6, '三次元']
 ]);
 
+
+export async function search_bangumi(query) {
+  const url = `https://api.bgm.tv/search/subject/${encodeURIComponent(query)}?responseGroup=large`;
+  try {
+    const response = await fetchWithTimeout(url, { headers: BGM_API_HEADERS, timeout: 10000 });
+    if (!response || !response.ok) {
+      const errorText = response ? await response.text().catch(() => '') : '';
+      console.error(`Bangumi search request failed ${response ? response.status : ''}: ${errorText}`);
+      return { error: `Bangumi search failed with status: ${response ? response.status : 'unknown'}` };
+    }
+
+    const result = await response.json().catch(() => null);
+    if (!result || !result.list) {
+      return { data: [] };
+    }
+
+    return {
+      data: result.list.map(d => ({
+        year: d.air_date ? d.air_date.slice(0, 4) : '',
+        subtype: TYPE_MAP.get(d.type) || '',
+        title: d.name_cn || d.name,
+        subtitle: d.name,
+        link: d.url
+      }))
+    };
+  } catch (e) {
+    console.error(`Bangumi search unexpected error: ${e.message}`);
+    return { error: `Bangumi search unexpected error: ${e.message}` };
+  }
+}
+
 /**
  * 格式化角色信息数组，将角色数据转换为特定格式的字符串数组
  * @param {Array} chars - 角色对象数组，每个对象包含角色信息
