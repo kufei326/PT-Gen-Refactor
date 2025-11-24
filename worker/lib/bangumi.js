@@ -125,7 +125,10 @@ const getInfoboxArrayValues = (infobox, key) => {
   if (Array.isArray(value)) {
     return value.map(a => a.v).filter(v => v != null);
   }
-  return safe(value);
+  if (value) {
+    return [value];
+  }
+  return [];
 };
 
 /**
