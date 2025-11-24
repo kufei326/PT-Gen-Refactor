@@ -909,13 +909,25 @@ const validateRequest = async (request, corsHeaders, env) => {
     const apiKey = url.searchParams.get("key");
 
     if (!apiKey) {
+      // 检查是否是GET请求且有查询参数，如果有则允许继续处理
+      const hasQueryParams = url.searchParams.has('query') || 
+                            url.searchParams.has('url') || 
+                            url.searchParams.has('source') || 
+                            url.searchParams.has('sid') ||
+                            url.searchParams.has('tmdb_id');
+      
       if (url.pathname === "/" && request.method === "GET") {
-        return { valid: false, response: await handleRootRequest(env, true) };
+        if (!hasQueryParams) {
+          // 没有查询参数时返回HTML文档页面
+          return { valid: false, response: await handleRootRequest(env, true) };
+        }
+        // 有查询参数时跳过API密钥检查，允许继续处理
+      } else {
+        return {
+          valid: false,
+          response: createErrorResponse("API key required. Access denied.", 401, corsHeaders),
+        };
       }
-      return {
-        valid: false,
-        response: createErrorResponse("API key required. Access denied.", 401, corsHeaders),
-      };
     }
     
     if (apiKey !== env.API_KEY) {
@@ -1224,7 +1236,11 @@ const handleRequest = async (request, env) => {
     if (hasQueryParams) {
       return await handleQueryRequest(request, env, uri);
     } else {
-      return handleRootRequest(env, true); 
+      // 检查Accept头部，如果是API请求则返回JSON文档，否则返回HTML页面
+      const acceptHeader = request.headers.get('Accept') || '';
+      const isApiRequest = acceptHeader.includes('application/json') || 
+                          acceptHeader.includes('*/*') && !acceptHeader.includes('text/html');
+      return handleRootRequest(env, !isApiRequest); 
     }
   }
 
