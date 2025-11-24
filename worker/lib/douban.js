@@ -360,15 +360,24 @@ export const search_douban = async (query, env) => {
     }
 
     // 标准化搜索结果
-    const formattedResults = searchResults.slice(0, 10).map(item => ({
-      year: item.year || '',
-      subtype: item.type || 'movie',
-      title: item.title || '',
-      subtitle: item.sub_title || '',
-      link: `https://movie.douban.com/subject/${item.id}/`,
-      id: item.id,
-      img: item.img || ''
-    }));
+    const formattedResults = searchResults.slice(0, 10).map(item => {
+      // 修复豆瓣API的类型识别问题：通过episode字段判断是否为电视剧
+      let subtype = item.type || 'movie';
+      if (item.episode && parseInt(item.episode) > 0) {
+        subtype = 'tv'; // 有集数信息的是电视剧
+      }
+      
+      return {
+        year: item.year || '',
+        subtype: subtype,
+        title: item.title || '',
+        subtitle: item.sub_title || '',
+        link: `https://movie.douban.com/subject/${item.id}/`,
+        id: item.id,
+        img: item.img || '',
+        episode: item.episode || '' // 保留集数信息
+      };
+    });
 
     return {
       success: true,
