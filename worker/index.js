@@ -403,7 +403,9 @@ const processSearchResults = (results, source) => {
 
       case 'tmdb':
         return {
-          year: safeGetYearFromReleaseDate(item.release_date),
+          year: safeGetYearFromReleaseDate(
+            item.media_type === 'tv' ? item.first_air_date : item.release_date
+          ),
           subtype: item.media_type === 'tv' ? 'tv' : 'movie',
           title: item.original_name 
             ? `${pick(item, 'name')} / ${pick(item, 'original_name')}`
