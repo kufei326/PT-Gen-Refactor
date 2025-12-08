@@ -1022,17 +1022,18 @@ const validateRequest = async (request, corsHeaders, env) => {
 
     if (!apiKey) {
       if (url.pathname === "/" && request.method === "GET") {
-        // 没有查询参数时返回HTML文档页面
+        // 检查是否有查询参数
         const hasQueryParams = url.searchParams.has('query') || 
                               url.searchParams.has('url') || 
                               url.searchParams.has('source') || 
                               url.searchParams.has('sid') ||
                               url.searchParams.has('tmdb_id');
         if (!hasQueryParams) {
+          // 没有查询参数时返回HTML文档页面
           return { valid: false, response: await handleRootRequest(env, true) };
         }
       }
-      // 所有其他情况都需要API密钥
+      // 所有其他情况（包括有查询参数但没有API key）都需要API密钥
       return {
         valid: false,
         response: createErrorResponse("API key required. Access denied.", 401, corsHeaders),
@@ -1349,7 +1350,8 @@ const handleRequest = async (request, env) => {
       if (pathname === "/api") {
         return _createApiResponse(env?.AUTHOR || AUTHOR, env);
       } else {
-        // 对于根路径，检查Accept头部，如果是API请求则返回JSON文档，否则返回HTML页面
+        // 对于根路径，如果有查询参数但到了这里，说明验证失败（比如需要API key但没提供）
+        // 如果没有查询参数，检查Accept头部决定返回格式
         const acceptHeader = request.headers.get('Accept') || '';
         const isApiRequest = acceptHeader.includes('application/json') || 
                             acceptHeader.includes('*/*') && !acceptHeader.includes('text/html');
