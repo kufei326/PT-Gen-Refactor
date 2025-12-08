@@ -1345,11 +1345,16 @@ const handleRequest = async (request, env) => {
     if (hasQueryParams) {
       return await handleQueryRequest(request, env, uri);
     } else {
-      // 检查Accept头部，如果是API请求则返回JSON文档，否则返回HTML页面
-      const acceptHeader = request.headers.get('Accept') || '';
-      const isApiRequest = acceptHeader.includes('application/json') || 
-                          acceptHeader.includes('*/*') && !acceptHeader.includes('text/html');
-      return handleRootRequest(env, !isApiRequest); 
+      // 对于 /api 路径，始终返回JSON格式的API文档
+      if (pathname === "/api") {
+        return _createApiResponse(env?.AUTHOR || AUTHOR, env);
+      } else {
+        // 对于根路径，检查Accept头部，如果是API请求则返回JSON文档，否则返回HTML页面
+        const acceptHeader = request.headers.get('Accept') || '';
+        const isApiRequest = acceptHeader.includes('application/json') || 
+                            acceptHeader.includes('*/*') && !acceptHeader.includes('text/html');
+        return handleRootRequest(env, !isApiRequest);
+      }
     }
   }
 
